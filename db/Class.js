@@ -1,47 +1,86 @@
 const db = require('./index')
 
 
-
 const schema = new db.Schema(
     {
         owner: {
-            type: Number,
-            required: true
+            type: db.Schema.Types.ObjectId,
+            required: true,
+            ref: 'user'
         },
-        participants: [Number],
+        participant: {
+            type: db.Schema.Types.ObjectId,
+            required: true,
+            ref: 'user'
+        },
         create_date: {
             type: Number,
             default: Date.now()
         },
-        start_date: {
+        date: {
             type: Number,
             required: true
         },
-        is_completed: {
+        time: {
             type: Number,
-            default: false
+            max: 23,
+            min: 0,
+            required: true,
         },
-        is_private: {
-            type: Number,
-            required: true
+        method: {
+            type: db.Schema.Types.ObjectId,
+            ref: 'method'
         },
-        link: {
-            type: String,
-            maxlenght: 256,
-            required: true
+        specialization: {
+            type: db.Schema.Types.ObjectId,
+            ref: 'specialization'
         },
-        description: {
-            type: String,
-            maxlenght: 1000,
-            required: false
+        opportunities: {
+            teens: {
+                type: Boolean,
+                default: false
+            },
+            family: {
+                type: Boolean,
+                default: false
+            },
+            children: {
+                type: Boolean,
+                default: false
+            },
+            internal: {
+                type: Boolean,
+                default: false
+            }
         },
-        form: {
-            type: Number,
-            enum: ['online', 'internal'],
-            required: true
+        state: {
+            cancelled: {
+                type: Boolean,
+                default: false
+            },
+            confirmed: {
+                type: Boolean,
+                default: false
+            },
+            missed: {
+                type: Boolean,
+                default: false
+            },
         },
+    },
+    {
+        statics: {
+            getClassesByOwner(id) {
+                return this.find({owner: id})
+            },
+            getClassesByParticipant(id) {
+                return this.find({participant: id})
+            }
+        },
+        toJSON: {virtuals: true},
+        toObject: {virtuals: true},
     }
-  )
+)
 
 
-module.exports = db.model('class', schema, 'classes')
+module.exports = db.model('Class', schema, 'classes')

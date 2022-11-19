@@ -2,11 +2,12 @@ const db = require('./index')
 
 const schema = new db.Schema({
         owner: {
-            type: Number,
-            required: true
+            type: db.Schema.Types.ObjectId,
+            required: true,
         },
         reviewer: {
-            type: Number,
+            type: db.Schema.Types.ObjectId,
+            ref: 'user',
             required: true
         },
         title: {
@@ -29,10 +30,12 @@ const schema = new db.Schema({
             type: Number,
             max: 5,
             required: true
-        }
+        },
+
     },
     {
-
+        toJSON: {virtuals: true},
+        toObject: {virtuals: true},
     })
 
 module.exports = db.model('review', schema)
