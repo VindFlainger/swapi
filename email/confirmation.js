@@ -7,6 +7,7 @@ exports.sendEmailAuth = (email, token) => {
         subject: 'Подтверждение регистрации',
         text: `http://${process.env.HOST}/registration?token=${token}`
     })
+
 }
 
 exports.sendTempPassword = (email, password) => {

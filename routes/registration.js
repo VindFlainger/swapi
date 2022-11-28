@@ -12,7 +12,6 @@ const crypto = require('crypto')
 const createError = require("http-errors");
 const {sendEmailAuth} = require("../email/confirmation");
 const ReqError = require("../modules/ReqError");
-const {log} = require("debug");
 
 
 router.get('/', (req, res, next) => {
@@ -57,7 +56,7 @@ router.get('/', (req, res, next) => {
                             max: data.payload.price.online.max,
                         },
                     },
-                    timetable: {},
+                    timetable: [],
                     privileges: {
                         premium: 0,
                         medals: []
@@ -71,6 +70,10 @@ router.get('/', (req, res, next) => {
                     },
                     qualification: {
                         education: [],
+                    },
+                    about: {
+                        full: '',
+                        short: ''
                     }
                 } : undefined
 

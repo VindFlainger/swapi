@@ -1,9 +1,8 @@
-const {Router, json} = require('express')
+const {Router} = require('express')
 const router = Router()
 
 const profile = require('./profile')
 const timetable = require('./timetable')
-const sessions = require('./sessions')
 const methods = require('./methods')
 const specializations = require('./specializations')
 const opportunities = require('./opportunities')
@@ -12,7 +11,6 @@ const materials = require('./materials')
 const account = require('./account')
 const qualification = require('./qualification')
 
-const createError = require("http-errors");
 const jwt = require("jsonwebtoken");
 const ReqError = require("../../modules/ReqError");
 
@@ -38,7 +36,6 @@ router.use((req, res, next) => {
 
 router.use('/profile', profile)
 router.use('/timetable', timetable)
-router.use('/sessions', sessions)
 router.use('/specializations', specializations)
 router.use('/methods', methods)
 router.use('/opportunities', opportunities)
@@ -49,7 +46,7 @@ router.use('/qualification', qualification)
 
 
 router.use((req, res, next) => {
-    next(createError(404, 'This path does not exist for base /spec'))
+    next(new ReqError(108, 'This path does not exist for base /spec', 404))
 })
 
 module.exports = router

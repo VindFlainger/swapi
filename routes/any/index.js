@@ -2,6 +2,8 @@ const {Router, json} = require('express')
 const router = Router()
 
 const shortinfo = require('./shortinfo')
+const sessions = require('./sessions')
+const chats = require('./chats')
 
 const createError = require("http-errors");
 const jwt = require("jsonwebtoken");
@@ -21,6 +23,8 @@ router.use((req, res, next)=>{
 })
 
 router.use('/shortinfo', shortinfo)
+router.use('/sessions', sessions)
+router.use('/chats', chats)
 
 
 

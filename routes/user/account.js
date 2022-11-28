@@ -21,30 +21,18 @@ router.get('', (req, res, next) => {
             avatar: 1,
             sex: 1,
             email: '$registration.email',
-            contactEmail: '$email',
-            about: 1,
-            price: 1,
-            contacts: 1,
             statistic: 1,
-            privileges: 1,
-            methods: 1,
-            specializations: 1,
-            opportunities: 1,
         })
-        .populate('methods')
-        .populate('specializations')
         .populate('avatar')
         .then(
             data => {
-                res.json(
-                    {
-                        ...data.toObject(),
-                        reviews: undefined,
-                        opportunities: Object.keys(data.opportunities.toObject()).filter(key => data.opportunities.toObject()[key]),
-                    })
+                res.json(data)
             }
         )
 })
+
+
+/*
 
 router.put('/avatar',
     body(['avatarId'], 'field is required'),
@@ -283,6 +271,7 @@ router.get('/reviews', (req, res, next) => {
             res.json(data)
         })
 })
+*/
 
 
 module.exports = router

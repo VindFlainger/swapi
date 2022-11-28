@@ -5,7 +5,7 @@ module.exports.idValidator = v => {
 }
 
 module.exports.textValidator = v => {
-    if (!/^[0-9a-zA-ZА-я=!@# %^*()&+-,. ]*$/.test(v)) throw new ReqError(200, 'forbidden language or symbols')
+    if (!/^[0-9a-zA-ZА-я=!@# %:ё^*()&+-,. ]*$/.test(v)) throw new ReqError(200, 'forbidden language or symbols')
     return true
 }
 

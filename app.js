@@ -20,15 +20,19 @@ const upload = require("./routes/upload")
 
 const app = express();
 
+
+
+
+
 app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 
-app.use(function (req, res, next) {
+/*app.use(function (req, res, next) {
     console.log('%s %s %s', req.method, req.url, req.path)
     next()
-})
+})*/
 
 app.use('/user', user)
 app.use('/spec', spec)
@@ -41,6 +45,8 @@ app.use('/auth', auth)
 app.use('/check', check)
 app.use('/data', data)
 app.use('/upload', upload)
+
+
 
 
 
@@ -62,12 +68,25 @@ app.use((err, req, res, next) => {
     }
 })
 
-app.listen(process.env.PORT)
+const server = app.listen(process.env.PORT)
+
+
+
+const io = require('socket.io')(server)
+
+
+io.on("connection", (socket) => {
+    console.log('connected')
+    socket.emit("fromserver", 'ping');
+
+    // receive a message from the client
+    socket.on("fromclient", (...args) => {
+        console.log(...args)
+    });
+});
+
 
 module.exports = app;
-
-
-
 
 
 

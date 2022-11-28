@@ -32,7 +32,8 @@ router.post('/login',
 
                 return User.addSession(req.body.email, req.body.device, req.ip, token)
             })
-            .then(() => {
+            .then(resp => {
+                console.log(resp)
                 return res.json({token, email: req.body.email, role: req.role})
             })
             .catch(err => next(err))

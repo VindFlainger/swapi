@@ -15,6 +15,7 @@ router.get('/', (req, res, next) => {
             sex: 1,
             avatar: 1,
         })
+        .populate('avatar')
         .then(data => {
             res.json(data)
         })

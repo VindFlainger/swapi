@@ -1,4 +1,5 @@
 const db = require('./index')
+const e = require("express");
 
 
 const document = new db.Schema({
@@ -37,7 +38,7 @@ const schema = new db.Schema({
         },
         sex: {
             type: String,
-            enum: ['not set', 'male', 'female'],
+            enum: ['none', 'male', 'female'],
             required: true
         },
         role: {
@@ -54,12 +55,10 @@ const schema = new db.Schema({
             type: {
                 short: {
                     type: String,
-                    required: true,
                     maxlenght: 400
                 },
                 full: {
                     type: String,
-                    required: true,
                     maxlenght: 1000
                 }
             },
@@ -185,7 +184,6 @@ const schema = new db.Schema({
                 category: {
                     name: {
                         type: String,
-                        required: true,
                         maxlenght: 256
                     },
                     documents: {
@@ -359,11 +357,12 @@ const schema = new db.Schema({
                     .then(data => data?.timetable || null)
             },
             addSession(email, device, ip, token) {
+                console.log(email, device, ip, token)
                 return this.bulkWrite([
                     {
                         updateOne:
                             {
-                                filter: {email},
+                                filter: {'registration.email': email},
                                 update: {
                                     $pull:
                                         {
@@ -374,7 +373,7 @@ const schema = new db.Schema({
                     },
                     {
                         updateOne: {
-                            filter: {email},
+                            filter: {'registration.email': email},
                             update: {
                                 $push: {
                                     sessions: {

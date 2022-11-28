@@ -23,6 +23,7 @@
     "nodemailer": "^6.8.0",
     "pug": "2.0.0-beta11",
     "sharp": "^0.31.2",
+    "socket.io": "^4.5.4",
     "validator": "^13.7.0"
   },
   "devDependencies": {
