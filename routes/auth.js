@@ -29,12 +29,12 @@ router.post('/login',
                 if (!bcrypt.compareSync(req.body.password, pr.password))
                     throw new ReqError(103, 'the password is not correct', 401)
                 req.role = pr.role
+                req.id = pr.id
 
                 return User.addSession(req.body.email, req.body.device, req.ip, token)
             })
             .then(resp => {
-                console.log(resp)
-                return res.json({token, email: req.body.email, role: req.role})
+                return res.json({token, email: req.body.email, role: req.role, id: req.id})
             })
             .catch(err => next(err))
     })

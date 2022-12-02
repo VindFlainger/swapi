@@ -16,6 +16,7 @@ const auth = require("./routes/auth")
 const check = require("./routes/check")
 const data = require("./routes/data")
 const upload = require("./routes/upload")
+const socket = require('./sockets/index')
 
 
 const app = express();
@@ -69,21 +70,8 @@ app.use((err, req, res, next) => {
 })
 
 const server = app.listen(process.env.PORT)
+socket.listen(server)
 
-
-
-const io = require('socket.io')(server)
-
-
-io.on("connection", (socket) => {
-    console.log('connected')
-    socket.emit("fromserver", 'ping');
-
-    // receive a message from the client
-    socket.on("fromclient", (...args) => {
-        console.log(...args)
-    });
-});
 
 
 module.exports = app;

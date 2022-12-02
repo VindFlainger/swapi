@@ -350,7 +350,7 @@ const schema = new db.Schema({
             },
             getPasswordRole(email) {
                 return this.findOne({'registration.email': email})
-                    .then(data => data ? {role: data.role, password: data.registration.password} : null)
+                    .then(data => data ? {role: data.role, password: data.registration.password, id: data._id} : null)
             },
             getTimetable(id) {
                 return this.findById(id)

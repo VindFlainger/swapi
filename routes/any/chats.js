@@ -2,46 +2,83 @@ const {Router, json} = require('express')
 const router = Router()
 
 const Message = require("../../db/Message");
-const {query} = require("express-validator");
+const {query, body} = require("express-validator");
 const validationHandler = require('../../modules/validationHandler')
 const {idValidator} = require("../../modules/customValidators");
 const ObjectId = require("mongoose").Types.ObjectId;
 
 
-router.get('/test', (req, res) => {
-    Message.create({
-        to: req.query.to,
-        from: req.user_id,
-        text: 'some payload',
+router.post('/sendMessage',
+    body(['text', 'userId'], 'field is required'),
+    body('userId')
+        .custom(idValidator)
+    ,
+    body('text')
+        .isLength({min: 1})
+    ,
+    validationHandler,
+    (req, res, next) => {
+        Message.sendMessage(req.user_id, req.body.userId, req.body.text)
+            .then(data => res.json(data))
+            .catch(err => next(err))
     })
-})
 
-router.get('/send', (req, res) => {
-    Message.updateOne()
-})
-
-router.get('/offset',
+router.get('/readOffset',
     query('userId')
         .custom(idValidator)
     ,
     validationHandler,
-    (req, res) => {
-        Message.count(
-            {
-                $or: [
-                    {
-                        from: ObjectId(req.user_id),
-                        to: ObjectId(req.query.userId)
-                    },
-                    {
-                        from: ObjectId(req.query.userId),
-                        to: ObjectId(req.user_id),
-                        read: true
-                    }
-                ]
-            }
-        ).then(count => res.json(count))
+    (req, res, next) => {
+        Message.getReadOffset(req.user_id, req.query.userId)
+            .then(count => res.json(count))
+            .catch(err => next(err))
     })
+
+router.get('/viewedOffset',
+    query('userId')
+        .custom(idValidator)
+    ,
+    validationHandler, (req, res, next) => {
+        Message.getViewedOffset(req.user_id, req.query.userId)
+            .then(data => res.json(data))
+            .catch(err => next(err))
+    }
+)
+
+router.get('/offsets',
+    query('userId')
+        .custom(idValidator)
+    ,
+    validationHandler,
+    (req, res, next) => {
+        Promise.all([Message.getReadOffset(req.user_id, req.query.userId), Message.getViewedOffset(req.user_id, req.query.userId)])
+            .then(data => res.json({
+                readOffset: data[0],
+                viewedOffset: data[1]
+            }))
+            .catch(err => next(err))
+    })
+
+router.put('/readOffset',
+    body('userId')
+        .custom(idValidator)
+    ,
+    body('offset')
+        .isInt({min: 0})
+    ,
+    validationHandler,
+    (req, res, next) => {
+        Message.setReadOffset(req.user_id, req.body.userId, req.body.offset)
+            .then(() => res.json({success: true}))
+            .catch(err => next(err))
+    })
+
+
+router.get('/allNewMessagesCount', (req, res, next) => {
+    Message.getAllNewMessagesCount(req.user_id)
+        .then(count => res.json(count))
+        .catch(err => next(err))
+})
 
 
 router.get('/messages',
@@ -51,7 +88,7 @@ router.get('/messages',
         .toInt()
     ,
     query('limit')
-        .default(26)
+        .default(30)
         .isInt({min: 1, max: 50})
         .toInt()
     ,
@@ -75,8 +112,8 @@ router.get('/messages',
             .select({
                 to: 1,
                 text: 1,
-                read: 1,
-                createdAt: 1
+                createdAt: 1,
+                offset: 1
             })
             .sort({
                 createdAt: -1
@@ -87,16 +124,34 @@ router.get('/messages',
             })
             .limit(req.query.limit)
             .then(data => {
-                const ids = data.map(el => el._id)
                 Message.updateMany({
-                        _id: {$in: [...ids]},
-                        to: ObjectId(req.user_id)
+                        $and: [
+                            {
+                                $or: [
+                                    {
+                                        from: ObjectId(req.user_id),
+                                        to: ObjectId(req.query.userId)
+                                    },
+                                    {
+                                        from: ObjectId(req.query.userId),
+                                        to: ObjectId(req.user_id)
+                                    }
+                                ]
+                            },
+                            {
+                                offset: {
+                                    $lte: req.query.offset + req.query.limit
+                                }
+                            }
+                        ],
                     },
                     {
                         $set: {read: true}
                     })
                     .then(() => {
-                        res.json(data)
+                        setTimeout(() => {
+                            res.json(data)
+                        }, 1000)
                     })
                     .catch(err => next(err))
             })
@@ -172,7 +227,7 @@ router.get('/',
                 },
                 {
                     $sort: {
-                        'last.read': -1,
+                        'new': -1,
                         'last.createdAt': -1
                     }
                 }
@@ -221,4 +276,3 @@ router.get('/',
     })
 
 module.exports = router
-
