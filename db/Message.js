@@ -76,6 +76,23 @@ const schema = new db.Schema(
                 )
                     .then(count => count ? count - 1 : 0)
             },
+            getLastOffset(userId, targetId) {
+                return this.count(
+                    {
+                        $or: [
+                            {
+                                from: ObjectId(userId),
+                                to: ObjectId(targetId)
+                            },
+                            {
+                                from: ObjectId(targetId),
+                                to: ObjectId(userId),
+                            }
+                        ]
+                    }
+                )
+                    .then(count => count ? count - 1 : 0)
+            },
             setReadOffset(userId, targetId, offset) {
                 return this.updateMany(
                     {

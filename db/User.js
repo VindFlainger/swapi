@@ -1,5 +1,6 @@
 const db = require('./index')
 const e = require("express");
+const ReqError = require("../modules/ReqError");
 
 
 const document = new db.Schema({
@@ -13,7 +14,6 @@ const document = new db.Schema({
     },
     _id: false,
 })
-
 
 const schema = new db.Schema({
         name: {
@@ -352,12 +352,57 @@ const schema = new db.Schema({
                 return this.findOne({'registration.email': email})
                     .then(data => data ? {role: data.role, password: data.registration.password, id: data._id} : null)
             },
-            getTimetable(id) {
-                return this.findById(id)
-                    .then(data => data?.timetable || null)
+            getTimetableOnDay(userId, day, timeOffset) {
+                return this.findById(userId)
+                    .then(data => {
+                        if (!data?.timetable) throw new ReqError(3, 'no data', 400)
+                        return data.timetable
+                            .filter(time => {
+                                if (timeOffset > 0) {
+                                    return (
+                                        (
+                                            (time >= (24 * (day - 1) - timeOffset))
+                                            &&
+                                            (time < (24 * day - timeOffset))
+                                        )
+                                        ||
+                                        (
+                                            (day - 1 === 0)
+                                            &&
+                                            (time >= 168 - timeOffset)
+                                        )
+                                    )
+
+                                } else {
+                                    return (
+                                        (
+                                            (time >= (24 * (day - 1) - timeOffset))
+                                            &&
+                                            (time < (24 * day - timeOffset))
+                                        )
+                                        ||
+                                        (
+                                            (day === 7)
+                                            &&
+                                            (time < -timeOffset)
+                                        )
+                                    )
+
+
+                                }
+                            })
+                            .map(time => (((time - (day - 1) * 24 + timeOffset) % 168) + 168) % 168)
+                    })
+            },
+            getTimetable(userId, timeOffset) {
+                return this.findById(userId)
+                    .then(data => {
+                        if (!data?.timetable) throw new ReqError(3, 'no data', 400)
+                        return data.timetable
+                            .map(time => (((time + timeOffset) % 168) + 168) % 168)
+                    })
             },
             addSession(email, device, ip, token) {
-                console.log(email, device, ip, token)
                 return this.bulkWrite([
                     {
                         updateOne:
@@ -407,7 +452,7 @@ const schema = new db.Schema({
             },
             deleteAllSessions(email) {
                 return this.updateOne({'registration.email': email}, {$set: {sessions: []}})
-            }
+            },
         },
         toJSON: {
             virtuals: true

@@ -5,7 +5,7 @@ const {idValidator} = require("../modules/customValidators");
 
 
 const io = new Server()
-const sockets = new Map()
+const users = new Map()
 
 
 io.use((socket, next) => {
@@ -22,12 +22,14 @@ io.use((socket, next) => {
         })
 })
 
+io.users = users
+
 
 io.on("connection", (socket) => {
-    sockets.set(socket.request.user_id, socket.id)
+    users.set(socket.request.user_id, socket.id)
 
    socket.on('disconnect', ()=>{
-       sockets.delete(socket.request.user_id)
+       users.delete(socket.request.user_id)
    })
 
     socket.on('message:add', (userId, text, callback) => {
@@ -35,8 +37,8 @@ io.on("connection", (socket) => {
             Message.sendMessage(socket.request.user_id, userId, text)
                 .then(data => {
                     callback(data)
-                    if (sockets.get(userId)) {
-                        io.sockets.to(sockets.get(userId)).emit('message:new', data)
+                    if (users.get(userId)) {
+                        io.sockets.to(users.get(userId)).emit('message:new', data)
                     }
                 })
         }
@@ -45,8 +47,8 @@ io.on("connection", (socket) => {
     socket.on('message:read', (userId, offset) => {
         Message.setReadOffset(socket.request.user_id, userId, offset)
             .then(() => {
-                if (sockets.get(userId)) {
-                    io.sockets.to(sockets.get(userId)).emit('message:viewed', socket.request.user_id, offset)
+                if (users.get(userId)) {
+                    io.sockets.to(users.get(userId)).emit('message:viewed', socket.request.user_id, offset)
                 }
             })
     })

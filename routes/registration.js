@@ -1,18 +1,17 @@
 const {Router} = require('express')
 const router = Router()
-
 const User = require('../db/User')
 const Method = require('../db/Method')
-const Specialization = require('../db/Specialization')
-const {body, validationResult} = require("express-validator");
+const {body} = require("express-validator");
 const bcrypt = require('bcrypt')
-
 const registerData = new Map()
 const crypto = require('crypto')
-const createError = require("http-errors");
 const {sendEmailAuth} = require("../email/confirmation");
 const ReqError = require("../modules/ReqError");
+const {phoneValidator, passwordValidator, specializationValidator} = require("../modules/customValidators");
+const {validationHandler} = require("../modules/validationHandler");
 
+// TODO: rewrite all
 
 router.get('/', (req, res, next) => {
     const data = registerData.get(req.query.token)
@@ -82,7 +81,7 @@ router.get('/', (req, res, next) => {
                     res.json({success: true})
                 })
                 .catch(err => {
-                    next(createError(err))
+                    next(err)
                 })
         } else {
             registerData.delete(req.query.token)
@@ -93,14 +92,6 @@ router.get('/', (req, res, next) => {
 
 
 const registration = (req, res, next) => {
-
-    const errors = validationResult(req)
-
-    if (!errors.isEmpty()) {
-        return next(new ReqError(1, errors.array({onlyFirstError: true})))
-    }
-
-
     User.getEmails()
         .then(emails => {
             if (emails.includes(req.body.email)) throw new ReqError(101, 'This email is already in use')
@@ -139,17 +130,12 @@ router.post('/user',
         .withMessage('email is not valid')
     ,
     body('password')
-        .custom(v => {
-            if (!/^.*(?=.{8,})(?=.*[a-zA-Z])(?=.*[!#$%&? "]).*$/.test(v)) throw new Error('password is not valid')
-            return true
-        })
+        .custom(passwordValidator)
     ,
     body('number')
-        .custom(v => {
-            if (!/375[(33)(29)(44)(25)]{2}\d{7}/.test(v)) throw new Error('number is not valid')
-            return true
-        })
+        .custom(phoneValidator)
     ,
+    validationHandler,
     registration
 )
 
@@ -175,16 +161,10 @@ router.post('/spec',
         .withMessage('email is not valid')
     ,
     body('password')
-        .custom(v => {
-            if (!/^.*(?=.{8,})(?=.*[a-zA-Z])(?=.*[!#$%&? "]).*$/.test(v)) throw new Error('password is not valid')
-            return true
-        })
+        .custom(passwordValidator)
     ,
     body('number')
-        .custom(v => {
-            if (!/375[(33)(29)(44)(25)]{2}\d{7}/.test(v)) throw new Error('number is not valid')
-            return true
-        })
+        .custom(phoneValidator)
     ,
     body('opportunities.*')
         .isIn(['internal', 'teens', 'family', 'children'])
@@ -198,16 +178,13 @@ router.post('/spec',
         })
     ,
     body('specializations')
-        .custom(async v => {
-            const specializations = await Specialization.getSpecializations()
-            if (!v.every(el => specializations.some(specialization => specialization.toString() === el))) throw new Error('unknown specializations')
-            return true
-        })
+        .custom(specializationValidator)
     ,
     body(['price.online.min', 'price.internal.min', 'price.internal.max', 'price.online.max'])
         .isInt({max: 10000, min: 0})
         .toInt()
     ,
+    validationHandler,
     registration
 )
 

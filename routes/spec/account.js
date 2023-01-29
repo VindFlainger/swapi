@@ -3,7 +3,7 @@ const {Router} = require('express')
 const router = Router()
 const User = require('../../db/User')
 const {body} = require("express-validator");
-const validationHandler = require('../../modules/validationHandler')
+const {validationHandler} = require("../../modules/validationHandler")
 const {idValidator, textValidator} = require('../../modules/customValidators')
 const ReqError = require('../../modules/ReqError')
 const Method = require("../../db/Method");
@@ -186,7 +186,6 @@ router.put('/contacts',
     validationHandler
     ,
     (req, res, next) => {
-        console.log(req.body.email)
         User.updateOne({_id: req.user_id}, {
             $set: {
                 'contacts.messengers': req.body.messengers,

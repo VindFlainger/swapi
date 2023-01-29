@@ -1,7 +1,7 @@
 const {validationResult} = require("express-validator");
 const ReqError = require("./ReqError");
 
-module.exports = (req, res, next) => {
+module.exports.validationHandler = (req, res, next) => {
     const errors = validationResult(req)
     const customError = errors.array().find(error => error.msg instanceof ReqError)?.msg
     if (!errors.isEmpty()) {

@@ -1,12 +1,16 @@
 const {Router} = require('express')
 const router = Router()
-
 const Class = require('../../db/Class')
 const User = require('../../db/User')
+const Notification = require('../../db/Notification')
 const createError = require("http-errors");
-const {query, validationResult} = require("express-validator");
+const {query, body} = require("express-validator");
+const {idValidator, methodValidator, specializationValidator} = require("../../modules/customValidators");
 const ReqError = require("../../modules/ReqError");
+const io = require('../../sockets/index')
+const {validationHandler} = require("../../modules/validationHandler");
 
+// TODO: rewrite all
 
 router.get('/bookingTimetable',
     query(['specId', 'date'], 'field is required')
@@ -14,35 +18,30 @@ router.get('/bookingTimetable',
         .isEmpty()
     ,
     query('specId')
-        .custom(v => {
-            if (!/^[0-9a-fA-F]{24}$/.test(v)) throw new Error('Id is not valid')
-            return true
-        }),
+        .custom(idValidator),
     query('date')
         .isInt()
         .toInt()
     ,
+    query('specId')
+        .custom(idValidator)
+    ,
+    query('timeOffset')
+        .optional()
+        .isInt({lt: 13, gt: -12})
+        .toInt()
+    ,
+    validationHandler,
     (req, res, next) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return next(new ReqError(1, errors.array({onlyFirstError: true}), 400))
-        }
-
-        Promise.all([Class.getClassesByOwner(req.query.specId), User.getTimetable(req.query.specId)])
+        const day = new Date(req.query.date).getDay() || 7
+        Promise.all([Class.getTimetableOnDate(req.query.specId, req.query.date, req.query.timeOffset), User.getTimetableOnDay(req.query.specId, day, req.query.timeOffset)])
             .then(([classes, timetable]) => {
-                const day = new Date(req.query.date).getDay() || 7
-
-                res.json(timetable
-                    .filter(time => {
-                        return (time >= 24 * (day - 1) && time < 24 * day)
-                    })
-                    .map(time => time - (day - 1) * 24)
-                    .filter(time => !classes.find(_class => _class.date === req.query.date && _class.time === time))
+                const availableTimetable = timetable
+                    .filter(time => classes.every(cls => cls.time !== time))
                     .sort((a, b) => a - b)
-                )
+                res.json(availableTimetable)
             })
             .catch(err => next(err))
-
     })
 
 router.get('/bookingData',
@@ -51,17 +50,9 @@ router.get('/bookingData',
         .isEmpty()
     ,
     query('specId')
-        .custom(v => {
-            if (!/^[0-9a-fA-F]{24}$/.test(v)) throw new Error('Id is not valid')
-            return true
-        })
-    ,
+        .custom(idValidator)
+    , validationHandler,
     (req, res, next) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return next(new ReqError(1, errors.array({onlyFirstError: true}), 400))
-        }
-
         User.findById(req.query.specId)
             .select({
                 name: 1,
@@ -82,7 +73,122 @@ router.get('/bookingData',
                 }
             ))
             .catch(err => next(err))
+    })
 
+router.post('/booking',
+    body(['specId', 'date', 'time', 'method', 'specialization'], 'field is required')
+        .not()
+        .isEmpty()
+    ,
+    body('specId')
+        .custom(idValidator),
+    body('date')
+        .isInt()
+        .toInt()
+    ,
+    body('method')
+        .custom(methodValidator),
+    body('specialization')
+        .custom(specializationValidator),
+    body('opportunities')
+        .optional()
+        .isArray({max: 4})
+        .toArray()
+    ,
+    body('opportunities.*')
+        .isIn(['teens', 'children', 'family', 'internal'])
+    ,
+    body('time')
+        .isInt({min: 0, max: 23})
+        .toInt()
+    ,
+    body('specId')
+        .custom(idValidator)
+    ,
+    body('timeOffset')
+        .optional()
+        .isInt({lt: 13, gt: -12})
+        .toInt()
+    ,
+    validationHandler,
+    (req, res, next) => {
+        const opportunities = {
+            teens: !!req.body.opportunities?.includes('teens'),
+            family: !!req.body.opportunities?.includes('family'),
+            children: !!req.body.opportunities?.includes('children'),
+            internal: !!req.body.opportunities?.includes('internal'),
+        }
+
+        const day = new Date(req.body.date).getDay() || 7
+
+        Promise.all([Class.getTimetableOnDate(req.body.specId, req.body.date, req.body.timeOffset), User.getTimetableOnDay(req.body.specId, day, req.body.timeOffset)])
+            .then(([classes, timetable]) => {
+                const availableTimetable = timetable
+                    .filter(time => classes.every(cls => cls.time !== time))
+                    .sort((a, b) => a - b)
+
+                if (availableTimetable.includes(req.body.time)) {
+                    Class.createClass(
+                        req.body.specId,
+                        req.user_id,
+                        req.body.date,
+                        req.body.time,
+                        req.body.timeOffset,
+                        req.body.method,
+                        req.body.specialization,
+                        opportunities
+                    )
+                        .then(() => {
+                            return Notification.addBookingNotification(
+                                req.body.specId,
+                                req.user_id,
+                                new Date(req.body.date).setUTCHours(req.body.time - req.body.timeOffset, 0, 0, 0),
+                                req.body.method,
+                                req.body.specialization,
+                                opportunities
+                            )
+                        })
+                        .then(data => {
+                            if (io.users.get(req.body.specId)) {
+                                return Notification.populate(data, [
+                                    {
+                                        path: 'content.booking.user',
+                                        select: {
+                                            name: 1,
+                                            surname: 1,
+                                            avatar: 1,
+                                        },
+                                        populate: {
+                                            path: 'avatar',
+                                            select: {
+                                                __v: 0,
+                                                _id: 0
+                                            }
+                                        }
+                                    },
+                                    {
+                                        path: 'content.booking.method'
+                                    },
+                                    {
+                                        path: 'content.booking.specialization'
+                                    }
+                                ])
+                            }
+                        })
+                        .then(notification => {
+                            io.sockets.to(io.users.get(req.body.specId)).emit('notification:new', {
+                                ...notification.toObject(), read: false
+                            })
+                        })
+                        .catch()
+
+                    res.json({success: true})
+                } else {
+                    next(new ReqError(300, 'this time is not available', 400))
+                }
+
+            })
+            .catch(err => next(err))
     })
 
 router.get('/', (req, res, next) => {

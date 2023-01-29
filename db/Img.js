@@ -13,13 +13,14 @@ const schema = new db.Schema({
             type: String,
             required: true
         },
-        date: {
-            type: Number,
-            default: Date.now()
-        },
     },
 
     {
+        id: false,
+        timestamps: {
+            createdAt: true,
+            updatedAt: false
+        },
         virtuals: {
             url: {
                 get() {
@@ -28,10 +29,13 @@ const schema = new db.Schema({
             }
         },
         toJSON: {
-            virtuals: true
-        },
-        toObject: {
-            virtuals: true
+            virtuals: true,
+            versionKey: false,
+            transform: (doc, ret) => {
+                delete ret._id
+                delete ret.createdAt
+                delete ret.file
+            }
         },
     })
 

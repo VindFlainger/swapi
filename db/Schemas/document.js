@@ -1,6 +1,6 @@
 const db = require("../index");
 
-const schema = new db.Schema({
+module.exports = new db.Schema({
     name: {
         type: String,
         required: false
@@ -12,5 +12,3 @@ const schema = new db.Schema({
     },
     _id: false,
 })
-
-module.exports = schema

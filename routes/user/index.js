@@ -4,6 +4,7 @@ const router = Router()
 const profile = require('./profile')
 const classes = require('./classes')
 const account = require('./account')
+const materials = require('./materials')
 
 const jwt = require("jsonwebtoken");
 const ReqError = require("../../modules/ReqError");
@@ -31,6 +32,8 @@ router.use((req, res, next)=>{
 router.use('/profile', profile)
 router.use('/classes', classes)
 router.use('/account', account)
+router.use('/materials', materials)
+
 
 
 router.use((req, res, next) => {

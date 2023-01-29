@@ -6,7 +6,6 @@ const Img = require("../db/Img");
 const Avatar = require("../db/Avatar");
 const router = Router()
 const sharp = require('sharp')
-const crypto = require('crypto')
 
 router.post('/document', documentUploader.single('file'), (req, res, next) => {
     File.create({file: req.file.filename, name: req.file.originalname, size: req.file.size})

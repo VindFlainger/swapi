@@ -4,7 +4,6 @@ const router = Router()
 const Specialization = require('../db/Specialization')
 const Method = require('../db/Method')
 const User = require('../db/User')
-const createError = require("http-errors");
 
 router.get('/', (req, res, next) => {
     Promise.all(
@@ -24,7 +23,7 @@ router.get('/', (req, res, next) => {
                 price: data[2][0]
             })
         })
-        .catch(err => next(createError(err)))
+        .catch(err => next(err))
 })
 
 

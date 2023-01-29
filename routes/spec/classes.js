@@ -3,8 +3,8 @@ const router = Router()
 
 const {query, validationResult} = require("express-validator");
 const Class = require('../../db/Class')
-const User = require('../../db/User')
 const ReqError = require("../../modules/ReqError");
+const {validationHandler} = require("../../modules/validationHandler")
 
 
 router.get('',
@@ -21,12 +21,8 @@ router.get('',
         .isInt({lt: 13, gt: -12})
         .toInt()
     ,
+    validationHandler,
     (req, res, next) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return next(new ReqError(1, errors.array({onlyFirstError: true})), 400)
-        }
-
         if (!req.query.timeOffset) {
             Class.find({owner: req.user_id, date: req.query.date})
                 .sort({time: 1})

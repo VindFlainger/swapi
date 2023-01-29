@@ -2,10 +2,10 @@ const {Router, json} = require('express')
 
 const router = Router()
 const User = require('../db/User')
-const {query, validationResult} = require("express-validator");
+const {query} = require("express-validator");
 const ReqError = require("../modules/ReqError");
 const {idValidator} = require("../modules/customValidators");
-const validationHandler = require("../modules/validationHandler");
+const {validationHandler} = require("../modules/validationHandler");
 
 router.get('/findUser',
     query('row')

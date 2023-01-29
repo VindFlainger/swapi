@@ -31,7 +31,6 @@ const schema = new db.Schema({
             max: 5,
             required: true
         },
-
     },
     {
         toJSON: {virtuals: true},

@@ -2,9 +2,9 @@ const {Router} = require('express')
 const router = Router()
 
 const User = require("../../db/User");
-const createError = require("http-errors");
-const {body, validationResult} = require("express-validator");
-const Specialization = require("../../db/Specialization");
+const {body} = require("express-validator");
+const {specializationValidator} = require("../../modules/customValidators");
+const {validationHandler} = require("../../modules/validationHandler");
 
 router.get('/', (req, res, next) => {
     User
@@ -13,7 +13,7 @@ router.get('/', (req, res, next) => {
         .then(data => {
             res.json(data.specializations)
         })
-        .catch(err => next(createError(err)))
+        .catch(err => next(err))
 })
 
 router.post('/',
@@ -22,24 +22,15 @@ router.post('/',
         .isEmpty()
     ,
     body('specializations')
-        .custom(async v => {
-            const specializations = await Specialization.getSpecializations()
-            if (!v.every(el => specializations.includes(el))) throw new Error('unknown specializations')
-            return true
-        }),
+        .custom(specializationValidator),
+    validationHandler,
     (req, res, next) => {
-        const errors = validationResult(req)
-
-        if (!errors.isEmpty()) {
-            return res.status(400).json({error: errors.array({onlyFirstError: true})})
-        }
-
         User
             .updateOne({_id: req.user_id}, {$set: {specializations: req.body.specializations}})
             .then(data => {
                 res.json({success: true})
             })
-            .catch(err => next(createError(err)))
+            .catch(err => next(err))
     })
 
 module.exports = router

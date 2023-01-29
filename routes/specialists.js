@@ -1,10 +1,12 @@
 const {Router} = require('express')
 const router = Router()
-
 const User = require('../db/User')
+const {validationHandler} = require('../modules/validationHandler')
+const {body} = require("express-validator");
+const {specializationValidator, methodValidator} = require("../modules/customValidators");
 
 const sortParams = (id, form) => {
-    switch (Number(id)) {
+    switch (id) {
         case 1:
             return {'statistic.sessions.confirmed': -1}
         case 2:
@@ -16,92 +18,113 @@ const sortParams = (id, form) => {
     }
 }
 
-const validate = (...validators) => {
-    return validators.every(v => v())
-}
+router.post('/',
+    body(['specializations', 'methods', 'opportunities'])
+        .optional()
+        .isArray()
+    ,
+    body('specializations')
+        .optional()
+        .custom(specializationValidator)
+    ,
+    body('methods')
+        .optional()
+        .custom(methodValidator)
+    ,
+    body('opportunities.*')
+        .isIn(['family', 'internal', 'teens', 'children'])
+    ,
+    body('maxPrice')
+        .default(1000)
+        .isInt({min: 0, max: 1000})
+        .toInt()
+    ,
+    body('minPrice')
+        .default(0)
+        .isInt({min: 0, max: 1000})
+        .toInt()
+    ,
+    body('limit')
+        .default(30)
+        .isInt({min: 1})
+        .toInt()
+    ,
+    body('offset')
+        .default(0)
+        .isInt({min: 0})
+        .toInt()
+    ,
+    body('sort')
+        .default(1)
+        .isInt({min: 1, max: 4})
+        .toInt()
+    ,
+    validationHandler,
+    (req, res, next) => {
+        const match = {
+            role: 'spec',
+            ...req.body.methods && req.body.methods.length ? {'methods': {$all: req.body.methods}} : undefined,
+            ...req.body.specializations && req.body.specializations.length ? {'specializations': {$all: req.body.specializations}} : undefined,
+            ...req.body.opportunities?.includes('teens') ? {'opportunities.teens': true} : undefined,
+            ...req.body.opportunities?.includes('family') ? {'opportunities.family': true} : undefined,
+            ...req.body.opportunities?.includes('children') ? {'opportunities.children': true} : undefined,
+            ...req.body.opportunities?.includes('internal') ? {'opportunities.internal': true} : undefined,
+            ...req.body.maxPrice ? {$or: [{'price.online.min': {$lt: req.body.maxPrice}}, {'price.internal.min': {$lt: req.body.maxPrice}}]} : undefined,
+            ...req.body.minPrice ? {$or: [{'price.online.max': {$gt: req.body.minPrice}}, {'price.internal.max': {$gt: req.body.minPrice}}]} : undefined
+        }
 
-const notEmptyArrayValidator = arr => () => Array.isArray(arr) && arr.length
-const formValidator = form => () => form === 'online' || form === 'internal'
-
-
-router.get('/', (req, res) => {
-    const offset = req.query.offset || 0
-    const limit = req.query.limit || 10
-
-    const methods = validate(notEmptyArrayValidator(req.query.methods)) ? req.query.methods : undefined
-    const specializations = validate(notEmptyArrayValidator(req.query.methods)) ? req.query.specializations : undefined
-    const form = validate(formValidator(req.query.form)) ? req.query.form : 'online'
-    const max_price = Number(req.query.price?.split(':')?.pop())
-    const min_price = Number(req.query.price?.split(':')?.shift())
-
-
-    Promise.all([
-        User
-            .countDocuments({
-                role: 'spec',
-                ...methods ? {'methods': {$all: methods}} : undefined,
-                ...specializations ? {'specializations': {$all: specializations}} : undefined,
-                ...req.query.teens ? {'opportunities.teens': Boolean(req.query.teens)} : undefined,
-                ...req.query.family ? {'opportunities.family': Boolean(req.query.family)} : undefined,
-                ...req.query.children ? {'opportunities.children': Boolean(req.query.children)} : undefined,
-                ...form === 'internal'?{'opportunities.internal': true} : undefined,
-                ...max_price?{ $or: [{'price.online.min': {$lt: max_price }},{'price.internal.min': {$lt: max_price }}]}:undefined,
-                ...min_price?{$or: [{'price.online.max': {$gt: min_price }}, {'price.internal.max': {$gt: min_price }}]}:undefined
-            }),
-        User
-
-            .find(
-                {
-                    role: 'spec',
-                    ...methods ? {'methods': {$all: methods}} : undefined,
-                    ...specializations ? {'specializations': {$all: specializations}} : undefined,
-                    ...req.query.teens ? {'opportunities.teens': Boolean(req.query.teens)} : undefined,
-                    ...req.query.family ? {'opportunities.family': Boolean(req.query.family)} : undefined,
-                    ...req.query.children ? {'opportunities.children': Boolean(req.query.children)} : undefined,
-                    ...form === 'internal'?{'opportunities.internal': true} : undefined,
-                    ...max_price?{ $or: [{'price.online.min': {$lt: max_price }},{'price.internal.min': {$lt: max_price }}]}:undefined,
-                    ...min_price?{$or: [{'price.online.max': {$gt: min_price }}, {'price.internal.max': {$gt: min_price }}]}:undefined
-                }
+        Promise.all([
+            User
+                .countDocuments(match),
+            User
+                .find(match)
+                .populate('reviews')
+                .sort(sortParams(req.body.sort, req.body.opportunities?.includes('internal') ? 'internal' : 'online'))
+                .skip(req.body.offset)
+                .limit(req.body.limit)
+                .select({
+                    sessions: 1,
+                    registration: 1,
+                    id: 1,
+                    name: 1,
+                    surname: 1,
+                    email: 1,
+                    sex: 1,
+                    avatar: 1,
+                    price: 1,
+                    contacts: 1,
+                    opportunities: 1,
+                    about: 1,
+                    privileges: 1,
+                    statistic: 1,
+                    'qualification.category': 1
+                })
+                .select({
+                        'statistic': 0,
+                        'qualification': 0,
+                        'registration': 0,
+                        'sessions': 0,
+                        'stats': '$statistic.sessions',
+                        'degree.name': '$qualification.category.name',
+                        'degree.approve': '$qualification.category.approve',
+                        'registered': '$registration.date',
+                        'active': {$max: '$sessions.activity'}
+                    }
+                )
+                .populate('avatar')
+            ,
+        ])
+            .then(
+                data => res.json({
+                        count: data[0],
+                        specialists: data[1],
+                        offset: req.body.offset,
+                        limit: req.body.limit
+                    }
+                )
             )
-            .populate('reviews')
-            .sort(sortParams(req.query.sort || 1, form)
-            )
-            .skip(offset)
-            .limit(limit)
-            .select({
-                sessions: 1,
-                registration: 1,
-                id: 1,
-                name: 1,
-                surname: 1,
-                email: 1,
-                sex: 1,
-                avatar: 1,
-                price: 1,
-                contacts: 1,
-                opportunities: 1,
-                about: 1,
-                privileges: 1,
-                statistic: 1,
-                'qualification.category': 1
-            })
-            .select({
-                    'statistic': 0,
-                    'qualification': 0,
-                    'registration': 0,
-                    'sessions': 0,
-                    'stats': '$statistic.sessions',
-                    'degree.name': '$qualification.category.name',
-                    'degree.approve': '$qualification.category.approve',
-                    'registered': '$registration.date',
-                    'active': {$max: '$sessions.date'}
-                }
-            ),
-    ])
-        .then(
-            data => res.json({count: data[0], specialists: data[1], offset, limit})
-        )
-        .catch()
-})
+            .catch(err => next(err))
+    }
+)
 
 module.exports = router

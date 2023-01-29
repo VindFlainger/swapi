@@ -1,10 +1,11 @@
 const {Router} = require('express')
 const router = Router()
-
 const Review = require('../../db/Review')
 const User = require("../../db/User");
-const {body, validationResult} = require("express-validator");
-const createError = require("http-errors");
+const {body} = require("express-validator");
+const {successModified} = require("../../modules/statuses");
+const {validationHandler} = require("../../modules/validationHandler");
+const {phoneValidator} = require("../../modules/customValidators");
 
 router.get('/account', (req, res) => {
     User
@@ -78,10 +79,7 @@ router.post('/personal',
     ,
     body('phone')
         .optional()
-        .custom(v => {
-            if (!/375[(33)(29)(44)(25)]{2}\d{7}/.test(v)) throw new Error('phone is not valid')
-            return true
-        }),
+        .custom(phoneValidator),
     body('messengers')
         .optional()
         .isArray({max: 10})
@@ -102,12 +100,8 @@ router.post('/personal',
         .isLength({max: 30})
         .isAlphanumeric()
     ,
+    validationHandler,
     (req, res, next) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json({error: errors.array({onlyFirstError: true}), code: 1})
-        }
-
         User.updateOne({_id: req.user_id}, {
             $set: {
                 'about.full': req.body.aboutFull,
@@ -120,9 +114,9 @@ router.post('/personal',
             }
         })
             .then(() => {
-                res.json({success: true})
+                res.json(successModified)
             })
-            .catch(err => next(createError(err)))
+            .catch(err => next(err))
     })
 
 

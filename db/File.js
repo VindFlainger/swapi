@@ -1,27 +1,27 @@
 const db = require('./index')
-const {Schema} = require("mongoose");
 
 
 const schema = new db.Schema({
         file: {
             type: String,
-            required: true,
-            alias: 'url'
+            required: true
         },
         name: {
             type: String,
-            required: true
+            required: true,
+            maxLength: 256
         },
         size: {
             type: Number,
             required: true
         },
-        date: {
-            type: Number,
-            default: Date.now(),
-        },
     },
     {
+        id: false,
+        timestamps: {
+            createdAt: true,
+            updatedAt: false
+        },
         virtuals: {
             url: {
                 get() {
@@ -29,13 +29,15 @@ const schema = new db.Schema({
                 }
             }
         },
-        id: false,
         toJSON: {
-            virtuals: true
-        },
-        toObject: {
-            virtuals: true
-        },
+            virtuals: true,
+            versionKey: false,
+            transform: (doc, ret) => {
+                delete ret._id
+                delete ret.createdAt
+                delete ret.file
+            }
+        }
     }
 )
 

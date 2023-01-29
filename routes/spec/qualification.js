@@ -3,7 +3,7 @@ const {Router, json} = require('express')
 const router = Router()
 const User = require('../../db/User')
 const {body, query} = require("express-validator");
-const validationHandler = require('../../modules/validationHandler')
+const {validationHandler} = require("../../modules/validationHandler")
 const ReqError = require("../../modules/ReqError");
 const {idValidator, textValidator} = require("../../modules/customValidators");
 
@@ -94,7 +94,6 @@ router.put('/education',
                 }
             })
             .then(data => {
-                console.log(data)
                 if (!data.modifiedCount) next(new ReqError(3, 'no data', 202))
                 else res.json({success: true})
             })

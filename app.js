@@ -16,7 +16,10 @@ const auth = require("./routes/auth")
 const check = require("./routes/check")
 const data = require("./routes/data")
 const upload = require("./routes/upload")
+
 const socket = require('./sockets/index')
+const {unknownRequest} = require("./modules/errors");
+const {ReqResult} = require("./modules/ReqResult");
 
 
 const app = express();
@@ -52,18 +55,26 @@ app.use('/upload', upload)
 
 
 app.use(function (req, res, next) {
-    next(new ReqError(2, 'this request does not exist'));
+    next(unknownRequest);
 })
 
-app.use((err, req, res, next) => {
-    if (err instanceof ReqError) {
-        res.status(err.status).json({
-            message: err.message,
-            code: err.code
+
+app.use((event, req, res, next) => {
+    if (event instanceof ReqResult){
+        res.json({
+            success: true,
+            code: event.code,
+            message: event.message
+        })
+    }
+    else if (event instanceof ReqError) {
+        res.status(event.status).json({
+            message: event.message,
+            code: event.code
         })
     } else {
         res.status(500).json({
-            message: err.message,
+            message: event.message,
             code: 0
         })
     }

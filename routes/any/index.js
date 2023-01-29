@@ -4,19 +4,26 @@ const router = Router()
 const shortinfo = require('./shortinfo')
 const sessions = require('./sessions')
 const chats = require('./chats')
+const notifications = require('./notifications')
 
 const createError = require("http-errors");
 const jwt = require("jsonwebtoken");
+const ReqError = require("../../modules/ReqError");
 
+router.use((req, res, next) => {
+    if (!req.cookies.s_token && !req.body.s_token) {
+        return next(new ReqError(106, 'session token not received'), 401)
+    }
 
-router.use((req, res, next)=>{
-    jwt.verify(req.cookies.s_token || req.body.s_token, process.env.SECRET_KEY, {},(err, payload)=>{
-        if (err){
-            switch (err){
-                case jwt.TokenExpiredError: return res.status(400).json({error: err.message, code: 102})
+    jwt.verify(req.cookies.s_token || req.body.s_token, process.env.SECRET_KEY, {}, (err, payload) => {
+        if (err) {
+            switch (err) {
+                case jwt.TokenExpiredError:
+                    next(new ReqError(105, 'the lifetime of the session token has expired'), 401)
             }
             return
         }
+        req.role = payload.role
         req.user_id = payload.user_id
         next()
     })
@@ -25,6 +32,7 @@ router.use((req, res, next)=>{
 router.use('/shortinfo', shortinfo)
 router.use('/sessions', sessions)
 router.use('/chats', chats)
+router.use('/notifications', notifications)
 
 
 

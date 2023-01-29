@@ -2,8 +2,9 @@ const {Router} = require('express')
 const router = Router()
 
 const User = require("../../db/User");
-const createError = require("http-errors");
-const {body, validationResult} = require("express-validator");
+const {body} = require("express-validator");
+const {successModified} = require("../../modules/statuses");
+const {validationHandler} = require("../../modules/validationHandler");
 
 router.get('/', (req, res, next) => {
     User
@@ -12,7 +13,7 @@ router.get('/', (req, res, next) => {
         .then(data => {
             res.json(data.opportunities)
         })
-        .catch(err => next(createError(err)))
+        .catch(err => next(err))
 })
 
 router.post('/',
@@ -20,12 +21,8 @@ router.post('/',
         .optional()
         .isBoolean()
     ,
+    validationHandler,
     (req, res, next) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json({error: errors.array({onlyFirstError: true}), code: 1})
-        }
-
         User
             .updateOne({_id: req.user_id},
                 {
@@ -38,10 +35,10 @@ router.post('/',
                         }
                 }
             )
-            .then(data => {
-                res.json({success: true})
+            .then(() => {
+                res.json(successModified)
             })
-            .catch(err => next(createError(err)))
+            .catch(err => next(err))
     })
 
 module.exports = router

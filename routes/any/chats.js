@@ -3,7 +3,7 @@ const router = Router()
 
 const Message = require("../../db/Message");
 const {query, body} = require("express-validator");
-const validationHandler = require('../../modules/validationHandler')
+const {validationHandler} = require("../../modules/validationHandler")
 const {idValidator} = require("../../modules/customValidators");
 const ObjectId = require("mongoose").Types.ObjectId;
 
@@ -51,10 +51,16 @@ router.get('/offsets',
     ,
     validationHandler,
     (req, res, next) => {
-        Promise.all([Message.getReadOffset(req.user_id, req.query.userId), Message.getViewedOffset(req.user_id, req.query.userId)])
+        Promise.all([
+            Message.getReadOffset(req.user_id, req.query.userId),
+            Message.getViewedOffset(req.user_id, req.query.userId),
+            Message.getLastOffset(req.user_id, req.query.userId)
+
+        ])
             .then(data => res.json({
                 readOffset: data[0],
-                viewedOffset: data[1]
+                viewedOffset: data[1],
+                finalOffset: data[2]
             }))
             .catch(err => next(err))
     })
@@ -149,9 +155,7 @@ router.get('/messages',
                         $set: {read: true}
                     })
                     .then(() => {
-                        setTimeout(() => {
-                            res.json(data)
-                        }, 1000)
+                        res.json(data)
                     })
                     .catch(err => next(err))
             })

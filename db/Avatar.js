@@ -15,21 +15,28 @@ const img = new db.Schema({
                 }
             }
         },
-        toObject: {
-            virtuals: true
-        },
         toJSON: {
-            virtuals: true
-        }
+            virtuals: true,
+            transform(doc, ret){
+                delete ret._id
+            }
+        },
     })
 
 
 const schema = new db.Schema({
         images: [img],
-        date: {
-            type: Number,
-            default: Date.now()
+    },
+    {
+        timestamps: {
+            createdAt: true
         },
+        toJSON: {
+            versionKey: false,
+            transform(doc, ret){
+                delete ret._id
+            }
+        }
     }
 )
 

@@ -2,9 +2,10 @@ const {Router} = require('express')
 const router = Router()
 
 const User = require("../../db/User");
-const createError = require("http-errors");
-const {body, validationResult} = require("express-validator");
-const Method = require("../../db/Method");
+const {body, } = require("express-validator");
+const {successModified} = require("../../modules/statuses");
+const {validationHandler} = require("../../modules/validationHandler");
+const {methodValidator} = require("../../modules/customValidators");
 
 router.get('/', (req, res, next) => {
     User
@@ -13,7 +14,7 @@ router.get('/', (req, res, next) => {
         .then(data => {
             res.json(data.methods)
         })
-        .catch(err => next(createError(err)))
+        .catch(err => next(err))
 })
 
 router.post('/',
@@ -22,23 +23,15 @@ router.post('/',
         .isEmpty()
     ,
     body('methods')
-        .custom(async v => {
-            const methods = await Method.getMethods()
-            if (!v.every(el => methods.includes(el))) throw new Error('unknown methods')
-            return true
-        }),
+        .custom(methodValidator),
+    validationHandler,
     (req, res, next) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json({error: errors.array({onlyFirstError: true})})
-        }
-
         User
             .updateOne({_id: req.user_id}, {$set: {methods: req.body.methods}})
             .then(data => {
-                res.json({success: true})
+                res.json(successModified)
             })
-            .catch(err => next(createError(err)))
+            .catch(err => next(err))
     })
 
 module.exports = router
