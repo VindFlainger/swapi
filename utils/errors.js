@@ -2,7 +2,19 @@ const ReqError = require("./ReqError");
 
 
 module.exports.noData = new ReqError(3, 'no data', 202)
-module.exports.unknownRequest = new ReqError(2, 'this request does not exist', 404)
+
+// auth 100
+module.exports.authTokenNotAllowed = new ReqError(104, 'received token is not allowed', 401)
+module.exports.authSessionTokenExpired = new ReqError(105, 'received session token expired', 401)
+module.exports.authNoSessionToken = new ReqError(106, 'session token not received', 401)
+module.exports.authNotSpecSession = new ReqError(107, 'received session token is not a spec token', 401)
+module.exports.authNotUserSession = new ReqError(108, 'received session token is not a user token', 401)
+
+// route 200
+module.exports.routeNotExist = new ReqError(200, "route doesn't exist", 404)
+module.exports.routeNotExistSpec = new ReqError(201, "route doesn't exist for /spec", 404)
+module.exports.routeNotExistUser = new ReqError(202, "route doesn't exist for /user", 404)
+module.exports.routeNotExistAuthed = new ReqError(203, "route doesn't exist for /any", 404)
 
 // notExist 300
 module.exports.notExistError = new ReqError(300, 'object not exist error (general)', 400)
@@ -26,3 +38,6 @@ module.exports.materialsNoReader = new ReqError(1101, 'current user is not a rea
 // Reactions 1100
 module.exports.reactionsAlreadyExist = new ReqError(1201, 'current user reaction is already exist', 400)
 module.exports.reactionsNotExist = new ReqError(1202, 'current user reaction is not exist', 400)
+
+// Classes 1300
+module.exports.classesUnavailableTime = new ReqError(1301, 'received time is not available', 400)

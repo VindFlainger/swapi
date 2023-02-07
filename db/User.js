@@ -1,6 +1,6 @@
 const db = require('./index')
 const e = require("express");
-const ReqError = require("../modules/ReqError");
+const ReqError = require("../utils/ReqError");
 
 
 const document = new db.Schema({
@@ -434,10 +434,20 @@ const schema = new db.Schema({
                     }
                 ])
             },
-            checkToken(email, token) {
+            getLoginData(email){
+                return this.findOne({'registration.email': email})
+                    .select({
+                        name: '$name',
+                        surname: '$surname',
+                        email: '$registration.email',
+                        role: '$role',
+                        id: '$_id',
+                    })
+            },
+            checkToken(token) {
                 return this.findOneAndUpdate(
                     {
-                        'registration.email': email, 'sessions.token': token
+                        'sessions.token': token
                     },
                     {
                         $set:

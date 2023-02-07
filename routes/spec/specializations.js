@@ -3,8 +3,8 @@ const router = Router()
 
 const User = require("../../db/User");
 const {body} = require("express-validator");
-const {specializationValidator} = require("../../modules/customValidators");
-const {validationHandler} = require("../../modules/validationHandler");
+const {specializationValidator} = require("../../utils/customValidators");
+const {validationHandler} = require("../../utils/validationHandler");
 
 router.get('/', (req, res, next) => {
     User

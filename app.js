@@ -1,7 +1,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const path = require('path')
-const ReqError = require("./modules/ReqError");
+const ReqError = require("./utils/ReqError");
 require('dotenv').config()
 
 const user = require('./routes/user/index')
@@ -18,8 +18,8 @@ const data = require("./routes/data")
 const upload = require("./routes/upload")
 
 const socket = require('./sockets/index')
-const {unknownRequest} = require("./modules/errors");
-const {ReqResult} = require("./modules/ReqResult");
+const {routeNotExist} = require("./utils/errors");
+const {ReqResult} = require("./utils/ReqResult");
 
 
 const app = express();
@@ -32,11 +32,6 @@ app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
-
-/*app.use(function (req, res, next) {
-    console.log('%s %s %s', req.method, req.url, req.path)
-    next()
-})*/
 
 app.use('/user', user)
 app.use('/spec', spec)
@@ -52,10 +47,8 @@ app.use('/upload', upload)
 
 
 
-
-
 app.use(function (req, res, next) {
-    next(unknownRequest);
+    next(routeNotExist);
 })
 
 

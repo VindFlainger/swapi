@@ -128,6 +128,7 @@ const schema = new db.Schema(
             }
         }
     }, {
+        id: true,
         statics: {
             addBookingNotification(specId, userId, date, method, specialization, opportunities) {
                 return this.create({
@@ -193,33 +194,16 @@ const schema = new db.Schema(
                     },
                     {
                         $addFields: {
-                            witnesses: {
-                                $filter: {
-                                    input: '$witnesses',
-                                    as: 'witness',
-                                    cond: {
-                                        $eq: [
-                                            '$$witness',
-                                            ObjectId(userId)
-                                        ]
-                                    }
-                                }
-                            },
-                        }
-                    },
-                    {
-                        $addFields: {
                             read: {
-                                $eq: [
-                                    {$size: '$witnesses'},
-                                    1
-                                ]
+                                $in: [ObjectId(userId), '$witnesses']
                             },
+                            id: '$_id'
                         }
                     },
                     {
                         $project: {
-                            witnesses: 0
+                            witnesses: 0,
+                            __v: 0,
                         }
                     },
                     {
@@ -241,10 +225,6 @@ const schema = new db.Schema(
                                 },
                                 populate: {
                                     path: 'avatar',
-                                    select: {
-                                        __v: 0,
-                                        _id: 0
-                                    }
                                 }
                             },
                             {
@@ -257,18 +237,27 @@ const schema = new db.Schema(
                                 path: 'content.media.img'
                             },
                             {
-                                path: 'content.media.documents'
+                                path: 'content.media.documents',
+                                ref: 'file'
                             },
-
                         ])
                     })
             }
         },
         timestamps: {
             createdAt: true,
-            updatedAt: false
         },
-        versionKey: false,
+        toJSON: {
+            versionKey: false,
+            transform: (doc, ret) => {
+                delete ret.__v
+                delete ret._id
+            }
+        },
+        toObject: {
+            versionKey: false
+        },
+
     }
 )
 

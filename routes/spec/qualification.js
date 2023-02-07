@@ -3,9 +3,9 @@ const {Router, json} = require('express')
 const router = Router()
 const User = require('../../db/User')
 const {body, query} = require("express-validator");
-const {validationHandler} = require("../../modules/validationHandler")
-const ReqError = require("../../modules/ReqError");
-const {idValidator, textValidator} = require("../../modules/customValidators");
+const {validationHandler} = require("../../utils/validationHandler")
+const ReqError = require("../../utils/ReqError");
+const {idValidator, textValidator} = require("../../utils/customValidators");
 
 
 router.get('/category', (req, res, next) => {

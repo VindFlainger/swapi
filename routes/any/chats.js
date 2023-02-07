@@ -3,8 +3,8 @@ const router = Router()
 
 const Message = require("../../db/Message");
 const {query, body} = require("express-validator");
-const {validationHandler} = require("../../modules/validationHandler")
-const {idValidator} = require("../../modules/customValidators");
+const {validationHandler} = require("../../utils/validationHandler")
+const {idValidator} = require("../../utils/customValidators");
 const ObjectId = require("mongoose").Types.ObjectId;
 
 

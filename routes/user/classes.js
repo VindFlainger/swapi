@@ -5,10 +5,10 @@ const User = require('../../db/User')
 const Notification = require('../../db/Notification')
 const createError = require("http-errors");
 const {query, body} = require("express-validator");
-const {idValidator, methodValidator, specializationValidator} = require("../../modules/customValidators");
-const ReqError = require("../../modules/ReqError");
+const {idValidator, methodValidator, specializationValidator} = require("../../utils/customValidators");
 const io = require('../../sockets/index')
-const {validationHandler} = require("../../modules/validationHandler");
+const {validationHandler} = require("../../utils/validationHandler");
+const {classesUnavailableTime} = require("../../utils/errors");
 
 // TODO: rewrite all
 
@@ -121,7 +121,12 @@ router.post('/booking',
 
         const day = new Date(req.body.date).getDay() || 7
 
-        Promise.all([Class.getTimetableOnDate(req.body.specId, req.body.date, req.body.timeOffset), User.getTimetableOnDay(req.body.specId, day, req.body.timeOffset)])
+        Promise.all(
+            [
+                Class.getTimetableOnDate(req.body.specId, req.body.date, req.body.timeOffset),
+                User.getTimetableOnDay(req.body.specId, day, req.body.timeOffset)
+            ]
+        )
             .then(([classes, timetable]) => {
                 const availableTimetable = timetable
                     .filter(time => classes.every(cls => cls.time !== time))
@@ -184,7 +189,7 @@ router.post('/booking',
 
                     res.json({success: true})
                 } else {
-                    next(new ReqError(300, 'this time is not available', 400))
+                    next(classesUnavailableTime)
                 }
 
             })

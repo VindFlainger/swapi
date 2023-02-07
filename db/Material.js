@@ -1,6 +1,7 @@
 const db = require('./index')
 const {maxLength} = require("./Validators/array");
 const likes = require('../db/Schemas/likes')
+const mongoose = require("mongoose");
 
 
 const schema = new db.Schema(
@@ -38,6 +39,7 @@ const schema = new db.Schema(
         likes: likes
     },
     {
+        id: true,
         timestamps: {
             createdAt: true,
             updatedAt: false
@@ -46,26 +48,65 @@ const schema = new db.Schema(
             versionKey: false
         },
         statics: {
-            getReaderMaterials(readerId) {
-                return this.find({
-                    readers: readerId
-                })
-                    .select({
-                        readers: 0
+            getReaderMaterials(readerId, limit = 20, offset = 0) {
+                return Promise.all(
+                    [
+                        this.aggregate(
+                            [
+                                {
+                                    $match: {
+                                        readers: mongoose.Types.ObjectId(readerId)
+                                    }
+                                },
+                                {
+                                    $addFields: {
+                                        "liked": {
+                                            $in: [mongoose.Types.ObjectId(readerId), '$likes.voters.voter']
+                                        },
+                                        readers: {$size: '$readers'},
+                                        likes: '$likes.count',
+                                        id: '$_id'
+                                    }
+                                },
+                                {
+                                    $skip: offset
+                                },
+                                {
+                                    $limit: limit,
+                                },
+                            ]),
+                        this.count({
+                            readers: readerId
+                        })
+                    ]
+                )
+                    .then(([data, count]) => {
+                        return Promise.all(
+                            [
+                                this.populate(data, [
+                                        {
+                                            path: 'owner',
+                                            select: {
+                                                name: 1,
+                                                surname: 1,
+                                                avatar: 1,
+                                            },
+                                            populate: {
+                                                path: 'avatar'
+                                            }
+                                        },
+                                        {
+                                            path: 'previewImage',
+                                        },
+                                        {
+                                            path: 'documents',
+                                        },
+                                    ]
+                                ),
+                                count
+                            ]
+                        )
                     })
-                    .populate({
-                        path: 'owner',
-                        select: {
-                            name: 1,
-                            surname: 1,
-                            avatar: 1,
-                        },
-                        populate: {
-                            path: 'avatar'
-                        }
-                    })
-                    .populate('documents')
-                    .populate('previewImage')
             },
             deleteReader(materialId, readerId) {
                 return this.findOneAndUpdate({

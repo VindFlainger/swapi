@@ -3,12 +3,12 @@ const router = Router()
 
 const Notification = require('../../db/Notification')
 const {query, body} = require("express-validator");
-const {validationHandler} = require("../../modules/validationHandler");
-const {idValidator} = require("../../modules/customValidators");
-const {noData} = require("../../modules/errors");
+const {validationHandler} = require("../../utils/validationHandler");
+const {idValidator} = require("../../utils/customValidators");
+const {noData} = require("../../utils/errors");
 
 
-router.get('/getAll',
+router.get('/getNotifications',
     query('limit')
         .default(30)
         .isInt({min: 1, max: 100})

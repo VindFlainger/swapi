@@ -7,20 +7,17 @@ const bcrypt = require('bcrypt')
 const {body, validationResult} = require("express-validator");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken")
-const ReqError = require("../modules/ReqError");
+const ReqError = require("../utils/ReqError");
+const {authTokenNotAllowed} = require("../utils/errors");
+const {validationHandler} = require("../utils/validationHandler");
 
 
 router.post('/login',
     body(['email', 'password', 'device'], 'field is required')
         .not()
         .isEmpty()
-    ,
+    , validationHandler,
     (req, res, next) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return next(new ReqError(1, errors.array({onlyFirstError: true})), 400)
-        }
-
         const token = crypto.randomBytes(32).toString('hex')
         User.getPasswordRole(req.body.email)
             .then(pr => {
@@ -31,28 +28,22 @@ router.post('/login',
                 req.role = pr.role
                 req.id = pr.id
 
-                return User.addSession(req.body.email, req.body.device, req.ip, token)
+                return Promise.all([
+                    User.addSession(req.body.email, req.body.device, req.ip, token),
+                    User.getLoginData(req.body.email)
+                ])
             })
-            .then(() => {
-                return res.json({token, email: req.body.email, role: req.role, id: req.id})
+            .then(([_, data]) => {
+                res.json({...data.toObject(), token})
             })
             .catch(err => next(err))
     })
 
 router.post('/session',
-    body(['email', 'token'], 'field is required')
-        .not()
-        .isEmpty(),
     (req, res, next) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return next(new ReqError(1, errors.array({onlyFirstError: true})), 400)
-        }
-
-
-        User.checkToken(req.body.email, req.body.token)
+        User.checkToken(req.body.token)
             .then(data => {
-                if (!data) throw new ReqError(104, 'invalid long-live token', 401)
+                if (!data) throw authTokenNotAllowed
                 const sessionToken = jwt.sign({
                     role: data.role,
                     user_id: data._id
@@ -61,9 +52,7 @@ router.post('/session',
 
                 res.json({success: true, role: data.role, s_token: sessionToken})
             })
-            .catch(err => {
-                next(err)
-            })
+            .catch(err => next(err))
     })
 
 router.post('/changePassword',

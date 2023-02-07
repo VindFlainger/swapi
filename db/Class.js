@@ -139,12 +139,16 @@ const schema = new db.Schema(
             }
         },
         toJSON: {
-            virtuals: true
+            virtuals: true,
+            versionKey: false
         },
         toObject: {
-            virtuals: true
+            virtuals: true,
+            versionKey: false
         },
-        timestamps: true
+        timestamps: {
+            createdAt: true
+        }
     },
 )
 

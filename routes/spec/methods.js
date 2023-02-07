@@ -3,9 +3,9 @@ const router = Router()
 
 const User = require("../../db/User");
 const {body, } = require("express-validator");
-const {successModified} = require("../../modules/statuses");
-const {validationHandler} = require("../../modules/validationHandler");
-const {methodValidator} = require("../../modules/customValidators");
+const {successModified} = require("../../utils/statuses");
+const {validationHandler} = require("../../utils/validationHandler");
+const {methodValidator} = require("../../utils/customValidators");
 
 router.get('/', (req, res, next) => {
     User

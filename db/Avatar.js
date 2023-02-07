@@ -15,6 +15,9 @@ const img = new db.Schema({
                 }
             }
         },
+        toObject: {
+            virtuals: true
+        },
         toJSON: {
             virtuals: true,
             transform(doc, ret){

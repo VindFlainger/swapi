@@ -3,9 +3,9 @@ const {Router} = require('express')
 const router = Router()
 const Material = require('../../db/Material')
 const {query, body} = require("express-validator");
-const ReqError = require("../../modules/ReqError");
-const {validationHandler} = require("../../modules/validationHandler")
-const {idValidator} = require('../../modules/customValidators')
+const ReqError = require("../../utils/ReqError");
+const {validationHandler} = require("../../utils/validationHandler")
+const {idValidator} = require('../../utils/customValidators')
 
 
 router.get('',

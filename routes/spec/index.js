@@ -12,23 +12,28 @@ const account = require('./account')
 const qualification = require('./qualification')
 
 const jwt = require("jsonwebtoken");
-const ReqError = require("../../modules/ReqError");
+const {
+    authNoSessionToken,
+    authSessionTokenExpired,
+    routeNotExistSpec,
+    authNotSpecSession
+} = require("../../utils/errors");
 
 
 router.use((req, res, next) => {
     if (!req.cookies.s_token && !req.body.s_token) {
-        return next(new ReqError(106, 'session token not received'), 401)
+        return next(authNoSessionToken)
     }
 
     jwt.verify(req.cookies.s_token || req.body.s_token, process.env.SECRET_KEY, {}, (err, payload) => {
         if (err) {
             switch (err) {
                 case jwt.TokenExpiredError:
-                    next(new ReqError(105, 'the lifetime of the session token has expired'), 401)
+                    next(authSessionTokenExpired)
             }
             return
         }
-        if (payload.role !== 'spec') return next(new ReqError(107, 'token is not spec token'), 401)
+        if (payload.role !== 'spec') return next(authNotSpecSession)
         req.user_id = payload.user_id
         next()
     })
@@ -46,7 +51,7 @@ router.use('/qualification', qualification)
 
 
 router.use((req, res, next) => {
-    next(new ReqError(108, 'This path does not exist for base /spec', 404))
+    next(routeNotExistSpec)
 })
 
 module.exports = router

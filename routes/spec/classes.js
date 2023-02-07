@@ -1,10 +1,10 @@
 const {Router} = require('express')
 const router = Router()
 
-const {query, validationResult} = require("express-validator");
+const {query} = require("express-validator");
 const Class = require('../../db/Class')
-const ReqError = require("../../modules/ReqError");
-const {validationHandler} = require("../../modules/validationHandler")
+const ReqError = require("../../utils/ReqError");
+const {validationHandler} = require("../../utils/validationHandler")
 
 
 router.get('',
@@ -111,12 +111,8 @@ router.delete('',
             return true
         })
     ,
+    validationHandler,
     (req, res, next) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return next(new ReqError(1, errors.array({onlyFirstError: true})), 400)
-        }
-
         Class.findOneAndDelete({owner: req.user_id, _id: req.query.id})
             .then(data => {
                 if (data) res.json({success: true})

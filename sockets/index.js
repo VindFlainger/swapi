@@ -1,7 +1,7 @@
 const User = require("../db/User");
 const {Server} = require('socket.io')
 const Message = require('../db/Message')
-const {idValidator} = require("../modules/customValidators");
+const {idValidator} = require("../utils/customValidators");
 
 
 const io = new Server()

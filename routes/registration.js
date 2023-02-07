@@ -7,9 +7,9 @@ const bcrypt = require('bcrypt')
 const registerData = new Map()
 const crypto = require('crypto')
 const {sendEmailAuth} = require("../email/confirmation");
-const ReqError = require("../modules/ReqError");
-const {phoneValidator, passwordValidator, specializationValidator} = require("../modules/customValidators");
-const {validationHandler} = require("../modules/validationHandler");
+const ReqError = require("../utils/ReqError");
+const {phoneValidator, passwordValidator, specializationValidator} = require("../utils/customValidators");
+const {validationHandler} = require("../utils/validationHandler");
 
 // TODO: rewrite all
 

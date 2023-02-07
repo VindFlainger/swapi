@@ -1,9 +1,9 @@
 const {Router} = require('express')
 const router = Router()
 const User = require('../db/User')
-const {validationHandler} = require('../modules/validationHandler')
+const {validationHandler} = require('../utils/validationHandler')
 const {body} = require("express-validator");
-const {specializationValidator, methodValidator} = require("../modules/customValidators");
+const {specializationValidator, methodValidator} = require("../utils/customValidators");
 
 const sortParams = (id, form) => {
     switch (id) {

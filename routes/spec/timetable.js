@@ -3,7 +3,7 @@ const router = Router()
 
 const User = require('../../db/User')
 const {body, query} = require("express-validator");
-const {validationHandler} = require("../../modules/validationHandler");
+const {validationHandler} = require("../../utils/validationHandler");
 
 router.get('/',
     query('timeOffset')
