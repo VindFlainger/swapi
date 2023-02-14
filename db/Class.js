@@ -50,18 +50,9 @@ const schema = new db.Schema(
             }
         },
         state: {
-            cancelled: {
-                type: Boolean,
-                default: false
-            },
-            confirmed: {
-                type: Boolean,
-                default: false
-            },
-            missed: {
-                type: Boolean,
-                default: false
-            },
+            type: String,
+            default: null,
+            enum: ['cancelled', 'confirmed', 'missed', null]
         },
     },
     {
@@ -86,6 +77,17 @@ const schema = new db.Schema(
                     method,
                     specialization,
                     opportunities
+                })
+            },
+            cancelClass(classId, userId) {
+                return this.updateOne({
+                    owner: userId,
+                    _id: classId,
+                    state: null
+                }, {
+                    $set: {
+                        state: 'cancelled'
+                    }
                 })
             },
             getTimetableOnDate(userId, date, timeOffset) {
@@ -136,6 +138,83 @@ const schema = new db.Schema(
                                 .sort((a, b) => a.time - b.time)
                         }
                     })
+            },
+            getClassesOnDate(userId, date, timeOffset) {
+                const _date = new Date(date).setUTCHours(0, 0, 0, 0)
+                const yDate = new Date(date).setUTCHours(-24, 0, 0, 0) // yesterday date
+                const tDate = new Date(date).setUTCHours(24, 0, 0, 0) // tomorrow date
+                return this
+                    .find(
+                        {
+                            owner: userId,
+                            date:
+                                {
+                                    $in: [_date, timeOffset < 0 ? tDate : yDate]
+                                }
+                        })
+                    .select({
+                        date: 1,
+                        time: 1,
+                        method: 1,
+                        specialization: 1,
+                        opportunities: 1,
+                        state: 1
+                    })
+                    .populate([
+                        {
+                            path: 'participant',
+                            select: {
+                                name: 1,
+                                surname: 1,
+                                email: 1,
+                                avatar: 1
+                            },
+                            populate: {
+                                path: 'avatar',
+                                select: {
+                                    id: 0,
+                                    _id: 0
+                                }
+                            }
+                        },
+                        {
+                            path: 'method'
+                        },
+                        {
+                            path: 'specialization'
+                        }
+                    ])
+                    .then(data => {
+                        if (timeOffset >= 0) {
+                            return data
+                                .filter(el => {
+                                    if (el.date === _date && el.time < 24 - timeOffset) return true
+                                    else return el.date === yDate && el.time >= 24 - timeOffset
+                                })
+                                .map(el => {
+                                    return {
+                                        ...el.toObject(),
+                                        time: (el.time + timeOffset) % 24,
+                                        date: _date
+                                    }
+                                })
+                                .sort((a, b) => a.time - b.time)
+                        } else {
+                            return data
+                                .filter(el => {
+                                    if (el.date === _date && el.time > timeOffset) return true
+                                    else return el.date === tDate && el.time < -timeOffset
+                                })
+                                .map(el => {
+                                    return {
+                                        ...el.toObject(),
+                                        time: (((el.time + timeOffset) % 24) + 24) % 24,
+                                        date: _date
+                                    }
+                                })
+                                .sort((a, b) => a.time - b.time)
+                        }
+                    })
             }
         },
         toJSON: {
@@ -147,7 +226,8 @@ const schema = new db.Schema(
             versionKey: false
         },
         timestamps: {
-            createdAt: true
+            createdAt: true,
+            updatedAt: false
         }
     },
 )

@@ -3,7 +3,7 @@ const Method = require("../db/Method");
 const Specialization = require('../db/Specialization')
 const {
     validationIdError, validationSymbolsError, optionMethodError, optionSpecializationError, validationPhoneError,
-    validationPasswordError
+    validationPasswordError, validationFieldRequired
 } = require("./errors");
 
 module.exports.idValidator = v => {
@@ -40,3 +40,7 @@ module.exports.specializationValidator = async v => {
     return true
 }
 
+module.exports.requiredValidator = v => {
+    if (!v) throw validationFieldRequired
+    return true
+}

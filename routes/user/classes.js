@@ -8,7 +8,7 @@ const {query, body} = require("express-validator");
 const {idValidator, methodValidator, specializationValidator} = require("../../utils/customValidators");
 const io = require('../../sockets/index')
 const {validationHandler} = require("../../utils/validationHandler");
-const {classesUnavailableTime} = require("../../utils/errors");
+const {classesUnavailableTime, validationFieldRequired} = require("../../utils/errors");
 
 // TODO: rewrite all
 
@@ -22,9 +22,6 @@ router.get('/bookingTimetable',
     query('date')
         .isInt()
         .toInt()
-    ,
-    query('specId')
-        .custom(idValidator)
     ,
     query('timeOffset')
         .optional()
@@ -45,7 +42,7 @@ router.get('/bookingTimetable',
     })
 
 router.get('/bookingData',
-    query(['specId'], 'field is required')
+    query(['specId'], validationFieldRequired)
         .not()
         .isEmpty()
     ,
@@ -162,6 +159,7 @@ router.post('/booking',
                                             name: 1,
                                             surname: 1,
                                             avatar: 1,
+                                            email: 1
                                         },
                                         populate: {
                                             path: 'avatar',
@@ -181,9 +179,11 @@ router.post('/booking',
                             }
                         })
                         .then(notification => {
-                            io.sockets.to(io.users.get(req.body.specId)).emit('notification:new', {
-                                ...notification.toObject(), read: false
-                            })
+                            if (notification){
+                                io.sockets.to(io.users.get(req.body.specId)).emit('notification:new', {
+                                    ...notification.toObject(), read: false
+                                })
+                            }
                         })
                         .catch()
 

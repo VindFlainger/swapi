@@ -4,11 +4,12 @@ const router = Router()
 const User = require('../../db/User')
 const {body, query} = require("express-validator");
 const {validationHandler} = require("../../utils/validationHandler")
-const ReqError = require("../../utils/ReqError");
-const {idValidator, textValidator} = require("../../utils/customValidators");
+const {idValidator} = require("../../utils/customValidators");
+const {validationFieldRequired, qualificationMaxLength} = require("../../utils/errors");
+const {successModified} = require("../../utils/statuses");
 
 
-router.get('/category', (req, res, next) => {
+router.get('/getCategory', (req, res, next) => {
     User
         .findOne({_id: req.user_id})
         .select({
@@ -16,17 +17,20 @@ router.get('/category', (req, res, next) => {
         })
         .populate({
             path: 'qualification.category.documents',
-            select: {date: 0, _id: 0, __v: 0}
+            select: {date: 0}
         })
         .then(data => res.json(data?.qualification?.category))
         .catch(err => next(err))
 })
 
 
-router.put('/category',
+router.post('/setCategory',
+    body(['name', 'documents'], validationFieldRequired)
+        .not()
+        .notEmpty()
+    ,
     body('name')
-        .isLength({max: 20})
-        .custom(textValidator)
+        .isLength({min: 3, max: 20})
     ,
     body('documents')
         .isArray({max: 3})
@@ -45,15 +49,12 @@ router.put('/category',
                     }
                 }
             })
-            .then(data => {
-                if (!data.modifiedCount) next(new ReqError(3, 'no data', 202))
-                else res.json({success: true})
-            })
+            .then(() => res.json(successModified))
             .catch(err => next(err))
     })
 
 
-router.get('/education', (req, res, next) => {
+router.get('/getEducation', (req, res, next) => {
     User
         .findOne({_id: req.user_id})
         .select({
@@ -67,13 +68,16 @@ router.get('/education', (req, res, next) => {
         .catch(err => next(err))
 })
 
-router.put('/education',
+router.post('/addEducation',
+    body(['institution', 'graduation', 'documents'], validationFieldRequired)
+        .not()
+        .notEmpty()
+    ,
     body('institution')
-        .isLength({max: 20})
-        .custom(textValidator)
+        .isLength({min: 3, max: 20})
     ,
     body('graduation')
-        .isInt({min: 0})
+        .isISO8601()
     ,
     body('documents')
         .isArray({max: 3})
@@ -81,11 +85,17 @@ router.put('/education',
     body('documents.*')
         .custom(idValidator)
     ,
+    body('')
+        .custom(async (_, {req}) => {
+            const education = await User.getEducation(req.user_id)
+            if (education.length >= 5) throw qualificationMaxLength
+            return true
+        }),
     validationHandler,
     (req, res, next) => {
         User
             .updateOne({_id: req.user_id, 'qualification.education.5': {$exists: 0}}, {
-                $addToSet: {
+                $push: {
                     'qualification.education': {
                         institution: req.body.institution,
                         graduation: req.body.graduation,
@@ -93,29 +103,30 @@ router.put('/education',
                     }
                 }
             })
-            .then(data => {
-                if (!data.modifiedCount) next(new ReqError(3, 'no data', 202))
-                else res.json({success: true})
-            })
+            .then(() => res.json(successModified))
             .catch(err => next(err))
     })
 
-router.delete('/education',
-    query('id')
+router.delete('/delEducation',
+    query(['institutionId'], validationFieldRequired)
+        .not()
+        .notEmpty()
+    ,
+    query('institutionId')
         .custom(idValidator)
     ,
     (req, res, next) => {
-    User
-        .updateOne({_id: req.user_id}, {
-            $pull: {
-                'qualification.education': {
-                    _id: req.query.id
+        User
+            .updateOne({_id: req.user_id}, {
+                $pull: {
+                    'qualification.education': {
+                        _id: req.query.institutionId
+                    }
                 }
-            }
-        })
-        .then(data => res.json(data?.qualification?.education))
-        .catch(err => next(err))
-})
+            })
+            .then(() => res.json(successModified))
+            .catch(err => next(err))
+    })
 
 
 module.exports = router

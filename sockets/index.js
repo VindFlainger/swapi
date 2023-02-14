@@ -10,7 +10,7 @@ const users = new Map()
 
 io.use((socket, next) => {
     if (!socket.handshake.auth.token || !socket.handshake.auth.email) return next(new Error('auth data required'))
-    User.checkToken(socket.handshake.auth.email, socket.handshake.auth.token)
+    User.checkToken(socket.handshake.auth.token)
         .then(data => {
             if (!data) return next(new Error('invalid long-live token'))
             socket.request.role = data.role

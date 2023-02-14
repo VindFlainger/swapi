@@ -10,6 +10,7 @@ const classes = require('./classes')
 const materials = require('./materials')
 const account = require('./account')
 const qualification = require('./qualification')
+const testing = require('./testing')
 
 const jwt = require("jsonwebtoken");
 const {
@@ -48,6 +49,7 @@ router.use('/classes', classes)
 router.use('/materials', materials)
 router.use('/account', account)
 router.use('/qualification', qualification)
+router.use('/testing', testing)
 
 
 router.use((req, res, next) => {

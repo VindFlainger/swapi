@@ -156,15 +156,15 @@ const schema = new db.Schema({
         },
         qualification: {
             type: {
-                education: [
-                    {
+                education: {
+                    type: [{
                         institution: {
                             type: String,
                             required: true,
                             maxlenght: 255
                         },
                         graduation: {
-                            type: Number,
+                            type: Date,
                             required: true,
                         },
                         documents: {
@@ -176,11 +176,11 @@ const schema = new db.Schema({
                             default: false
                         },
                         watched: {
-                            type: Number,
-                            default: 0
+                            type: Date,
+                            default: null
                         },
-                    }
-                ],
+                    }],
+                },
                 category: {
                     name: {
                         type: String,
@@ -200,7 +200,6 @@ const schema = new db.Schema({
                     },
                 },
             },
-            _id: false,
             required: false
         },
         confirmation: {
@@ -434,7 +433,7 @@ const schema = new db.Schema({
                     }
                 ])
             },
-            getLoginData(email){
+            getLoginData(email) {
                 return this.findOne({'registration.email': email})
                     .select({
                         name: '$name',
@@ -463,6 +462,20 @@ const schema = new db.Schema({
             deleteAllSessions(email) {
                 return this.updateOne({'registration.email': email}, {$set: {sessions: []}})
             },
+            incCancelled(userId, v = 1) {
+                return this.updateOne({_id: userId}, {
+                    $inc: {
+                        'statistic.sessions.cancelled': v
+                    }
+                })
+            },
+            getEducation(userId) {
+                return this.findOne({role: 'spec', _id: userId})
+                    .then(data => {
+                        if (!data) return null
+                        return data.qualification.education
+                    })
+            }
         },
         toJSON: {
             virtuals: true

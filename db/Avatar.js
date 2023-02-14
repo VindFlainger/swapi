@@ -39,6 +39,9 @@ const schema = new db.Schema({
             transform(doc, ret){
                 delete ret._id
             }
+        },
+        toObject: {
+            versionKey: false
         }
     }
 )

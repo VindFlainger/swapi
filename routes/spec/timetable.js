@@ -5,7 +5,7 @@ const User = require('../../db/User')
 const {body, query} = require("express-validator");
 const {validationHandler} = require("../../utils/validationHandler");
 
-router.get('/',
+router.get('/getTime',
     query('timeOffset')
         .default(0)
         .isInt({lt: 13, gt: -12})
@@ -18,7 +18,7 @@ router.get('/',
             .catch(err => next(err))
     })
 
-router.put('/',
+router.post('/setTime',
     body(['time'], 'field is required')
         .not()
         .isEmpty()
@@ -46,7 +46,7 @@ router.put('/',
             .catch(err => next(err))
     })
 
-router.delete('/',
+router.delete('/deleteTime',
     query(['time'], 'field is required')
         .not()
         .isEmpty()
@@ -67,7 +67,7 @@ router.delete('/',
                 {_id: req.user_id},
                 {
                     $pull: {
-                        timetable: (((req.body.time - req.body.timeOffset) % 168) + 168) % 168
+                        timetable: (((req.query.time - req.query.timeOffset) % 168) + 168) % 168
                     }
                 }
             )

@@ -222,6 +222,7 @@ const schema = new db.Schema(
                                     name: 1,
                                     surname: 1,
                                     avatar: 1,
+                                    email: 1
                                 },
                                 populate: {
                                     path: 'avatar',
