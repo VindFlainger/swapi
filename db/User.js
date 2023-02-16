@@ -1,8 +1,8 @@
 const db = require('./index')
-const e = require("express");
 const ReqError = require("../utils/ReqError");
 
 
+// TODO: for confirmation (realize without this)
 const document = new db.Schema({
     img: {
         type: String,
@@ -14,6 +14,7 @@ const document = new db.Schema({
     },
     _id: false,
 })
+
 
 const schema = new db.Schema({
         name: {
