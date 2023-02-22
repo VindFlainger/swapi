@@ -5,10 +5,18 @@ const Material = require('../../db/Material')
 const {query, body} = require("express-validator");
 const ReqError = require("../../utils/ReqError");
 const {validationHandler} = require("../../utils/validationHandler")
-const {idValidator} = require('../../utils/customValidators')
+const {idValidator, userValidator} = require('../../utils/customValidators')
+const {
+    validationFieldRequired,
+    materialsIdNotExist,
+    authNotUsers,
+    materialsNoReader,
+    materialsReaderExists
+} = require("../../utils/errors");
+const {successModified} = require("../../utils/statuses");
 
 
-router.get('',
+router.get('/getMaterials',
     query('limit')
         .default(10)
         .isInt({min: 1})
@@ -19,40 +27,16 @@ router.get('',
         .toInt(),
     validationHandler,
     (req, res, next) => {
-        Promise.all([
-            Material.find({owner: req.user_id})
-                .sort({date: 1, _id: 1})
-                .skip(req.query.offset)
-                .limit(req.query.limit)
-                .populate(
-                    {
-                        path: 'readers',
-                        select: {
-                            name: 1,
-                            surname: 1,
-                            avatar: 1
-                        },
-                        populate: {path: 'avatar'}
-                    })
-                .populate('documents')
-                .populate('previewImage')
-            ,
-            Material.count({owner: req.user_id})
-        ])
-            .then(([data, count]) =>
-                res.json({
-                    materials: data,
-                    limit: req.query.limit,
-                    offset: req.query.offset,
-                    totalCount: count
-                })
-            )
+        Material.getSpecMaterials(req.user_id, req.query.offset, req.query.limit)
+            .then(data => {
+                res.json(data)
+            })
             .catch(err => next(err))
     })
 
 
-router.put('',
-    body(['name', 'documents'], 'field is required')
+router.post('/addMaterial',
+    body(['name', 'documents'], validationFieldRequired)
         .not()
         .isEmpty()
     ,
@@ -70,8 +54,8 @@ router.put('',
         .custom(idValidator)
     ,
     body('description')
-        .isLength({max: 250})
         .optional()
+        .isLength({max: 250})
     ,
     validationHandler,
     (req, res, next) => {
@@ -83,65 +67,84 @@ router.put('',
             documents: req.body.documents
         })
             .then(() => {
-                res.json({success: true})
+                res.json(successModified)
             })
             .catch(err => next(err))
     }
 )
 
-router.delete('',
+router.delete('/delMaterial',
+    query(['materialId'], validationFieldRequired)
+        .not()
+        .isEmpty()
+    ,
     query('materialId')
         .custom(idValidator)
+        .custom(async (v, {req}) => {
+            const material = await Material.findOne({_id: v})
+            if (!material) throw materialsIdNotExist
+            if (material.owner?.toString() !== req.user_id) throw authNotUsers
+            return true
+        })
     ,
     validationHandler,
     (req, res, next) => {
         Material
             .deleteOne({owner: req.user_id, _id: req.query.materialId})
-            .then(data => {
-                if (!data.deletedCount) next(new ReqError(3, 'no data', 202))
-                else res.json({success: true})
-            })
+            .then(() => res.json(successModified))
             .catch(err => next(err))
-
     }
 )
 
 
-router.delete('/reader',
-    query(['readerId', 'materialId'], 'field is required'),
+router.delete('/delReader',
+    query(['readerId', 'materialId'], validationFieldRequired),
     query(['readerId', 'materialId'])
         .custom(idValidator)
     ,
+    query('readerId')
+        .custom(userValidator)
+    ,
+    query('materialId')
+        .custom(async (v, {req}) => {
+            const material = await Material.findOne({_id: v})
+            if (!material) throw materialsIdNotExist
+            if (material.owner?.toString() !== req.user_id) throw authNotUsers
+            return true
+        })
+    ,
     validationHandler,
     (req, res, next) => {
-        Material
-            .updateOne({owner: req.user_id, _id: req.query.materialId}, {$pull: {readers: req.query.readerId}})
+        Material.deleteReader(req.query.materialId, req.query.readerId)
             .then(data => {
-                if (!data.modifiedCount) next(new ReqError(3, 'no data', 202))
-                else res.json({success: true})
+                data ? next(successModified) : next(materialsNoReader)
             })
             .catch(err => next(err))
 
     }
 )
 
-router.put('/reader',
-    body(['readerId', 'materialId'], 'field is required'),
+router.post('/addReader',
+    body(['readerId', 'materialId'], validationFieldRequired),
     body(['readerId', 'materialId'])
         .custom(idValidator)
+    ,
+    body('materialId')
+        .custom(async (v, {req}) => {
+            const material = await Material.findOne({_id: v})
+            if (!material) throw materialsIdNotExist
+            if (material.readers.some(el => el.toString() === req.body.readerId)) throw materialsReaderExists
+            if (material.owner?.toString() !== req.user_id) throw authNotUsers
+            return true
+        })
     ,
     validationHandler,
     (req, res, next) => {
         Material
             .updateOne({owner: req.user_id, _id: req.body.materialId}, {$addToSet: {readers: req.body.readerId}})
-            .then(data => {
-                if (!data.modifiedCount) next(new ReqError(3, 'no data', 202))
-                else res.json({success: true})
-            })
+            .then(() => res.json(successModified))
             .catch(err => next(err))
-
     }
 )
-
 
 module.exports = router

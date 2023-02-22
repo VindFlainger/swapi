@@ -118,6 +118,16 @@ const schema = new db.Schema(
                     }
                 )
             },
+            addReader(materialId, readerId) {
+                return this.findOneAndUpdate({
+                        _id: materialId,
+                        readers: readerId
+                    },
+                    {
+                        $addToSet: {readers: readerId}
+                    }
+                )
+            },
             isExists(materialId) {
                 return this.exists({_id: materialId})
             },
@@ -148,6 +158,35 @@ const schema = new db.Schema(
                             }
                         }
                     })
+            },
+            getSpecMaterials(specId, offset, limit) {
+                return Promise.all([
+                    this.find({owner: specId})
+                        .sort({date: 1, _id: 1})
+                        .skip(offset)
+                        .limit(limit)
+                        .populate(
+                            {
+                                path: 'readers',
+                                select: {
+                                    name: 1,
+                                    surname: 1,
+                                    avatar: 1
+                                },
+                                populate: {path: 'avatar'}
+                            })
+                        .populate('documents')
+                        .populate('previewImage'),
+                    this.count({owner: specId})
+                ])
+                    .then(([data, count]) =>
+                        ({
+                            materials: data,
+                            limit: limit,
+                            offset: offset,
+                            totalCount: count
+                        })
+                    )
             }
         }
     }

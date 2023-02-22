@@ -1,9 +1,9 @@
-const ReqError = require("./ReqError");
 const Method = require("../db/Method");
+const User = require("../db/User");
 const Specialization = require('../db/Specialization')
 const {
     validationIdError, validationSymbolsError, optionMethodError, optionSpecializationError, validationPhoneError,
-    validationPasswordError, validationFieldRequired
+    validationPasswordError, validationFieldRequired, notExistUser
 } = require("./errors");
 
 module.exports.idValidator = v => {
@@ -42,5 +42,11 @@ module.exports.specializationValidator = async v => {
 
 module.exports.requiredValidator = v => {
     if (!v) throw validationFieldRequired
+    return true
+}
+
+module.exports.userValidator = async (v) => {
+    const user = await User.findById(v)
+    if (!user) throw notExistUser
     return true
 }

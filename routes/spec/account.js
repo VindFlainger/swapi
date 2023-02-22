@@ -2,7 +2,7 @@ const {Router} = require('express')
 
 const router = Router()
 const User = require('../../db/User')
-const {body} = require("express-validator");
+const {body, query} = require("express-validator");
 const {validationHandler} = require("../../utils/validationHandler")
 const {idValidator, textValidator} = require('../../utils/customValidators')
 const ReqError = require('../../utils/ReqError')
@@ -269,18 +269,24 @@ router.put('/services',
     })
 
 
-router.get('/reviews', (req, res, next) => {
+router.get('/getReviews',
+    query('offset')
+        .optional()
+        .isInt({min: 0})
+        .toInt()
+    ,
+    query('limit')
+        .optional()
+        .isInt({min: 0, max: 30})
+        .toInt()
+    ,validationHandler,
+    (req, res, next) => {
     Review
-        .find({owner: req.user_id})
-        .populate(
-            {
-                path: 'reviewer',
-                select: {name: 1, avatar: 1, surname: 1},
-                populate: {path: 'avatar'}
-            })
+        .getOwnerReviewsInfo(req.user_id, req.query.offset, req.query.limit)
         .then(data => {
             res.json(data)
         })
+        .catch(err => next(err))
 })
 
 

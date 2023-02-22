@@ -20,6 +20,7 @@ module.exports.routeNotExistAuthed = new ReqError(203, "route doesn't exist for 
 // notExist 300
 module.exports.notExistError = new ReqError(300, 'object not exist error (general)', 400)
 module.exports.notExistIdError = new ReqError(301, 'object not exist error (object with current id not exist)', 400)
+module.exports.notExistUser = new ReqError(302, 'user with received id not exist', 400)
 
 // Validation 400
 module.exports.validationError = new ReqError(400, 'validation error (general)', 400)
@@ -36,6 +37,8 @@ module.exports.optionSpecializationError = new ReqError(501, 'invalid option (in
 
 // Materials 1000
 module.exports.materialsNoReader = new ReqError(1101, 'current user is not a reader of this material', 400)
+module.exports.materialsIdNotExist = new ReqError(1102, "can't find material with received id", 400)
+module.exports.materialsReaderExists = new ReqError(1103, "current reader is already exists", 400)
 
 // Reactions 1100
 module.exports.reactionsAlreadyExist = new ReqError(1201, 'current user reaction is already exist', 400)
